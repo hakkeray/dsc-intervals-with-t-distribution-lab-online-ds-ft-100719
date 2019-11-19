@@ -42,10 +42,77 @@ population_ages1 = np.random.normal(20, 4, 10000)
 population_ages2 = np.random.normal(22, 3, 10000) 
 population_ages = np.concatenate((population_ages1, population_ages2))
 
-pop_ages = pd.DataFrame(population_ages)
+pop_ages = pd.DataFrame(population_ages, columns={'ages'})
 pop_ages.hist(bins=100,range=(5,33),figsize=(9,9))
 pop_ages.describe()
 ```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>ages</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>count</td>
+      <td>20000.000000</td>
+    </tr>
+    <tr>
+      <td>mean</td>
+      <td>21.008578</td>
+    </tr>
+    <tr>
+      <td>std</td>
+      <td>3.671277</td>
+    </tr>
+    <tr>
+      <td>min</td>
+      <td>4.784588</td>
+    </tr>
+    <tr>
+      <td>25%</td>
+      <td>18.662256</td>
+    </tr>
+    <tr>
+      <td>50%</td>
+      <td>21.163276</td>
+    </tr>
+    <tr>
+      <td>75%</td>
+      <td>23.489438</td>
+    </tr>
+    <tr>
+      <td>max</td>
+      <td>36.140116</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+![png](output_6_1.png)
+
 
 Let's take a new, smaller sample (of size smaller than 30) and calculate how much the sample mean differs from the population mean.
 
@@ -54,14 +121,22 @@ Let's take a new, smaller sample (of size smaller than 30) and calculate how muc
 np.random.seed(23)
 
 sample_size = 25
-sample = None # Take a random sample of size 25 from above population
-sample_mean = None  # Calculate sample mean 
+sample = np.random.choice(a=pop_ages.ages, size=sample_size) # Take a random sample of size 25 from above population
+sample_mean = np.mean(sample)  # Calculate sample mean 
 
 # Print sample mean and difference of sample and population mean 
+print("sample mean:",sample_mean)
+print("diff:", pop_ages.mean()-sample_mean)
 
-# Sample Mean: 19.870788629471857
-# Mean Difference: 1.1377888781920937
+
+#Sample Mean: 19.870788629471857
+#Mean Difference: 1.1377888781920937
 ```
+
+    sample mean: 19.870788629471857
+    diff: ages    1.137789
+    dtype: float64
+
 
 We can see that the sample mean differs from the population mean by 1.13 years. We can calculate a confidence interval without the population standard deviation, using the t-distribution using `stats.t.ppf(q, df)` function. This function takes in a value for the confidence level required (q) with "degrees of freedom" (df).
 
@@ -72,13 +147,17 @@ We can see that the sample mean differs from the population mean by 1.13 years. 
 
 ```python
 # Calculate the t-critical value for 95% confidence level for sample taken above. 
-t_critical = None   # Get the t-critical value  by using 95% confidence level and degree of freedom
+t_critical = stats.t.ppf(q=0.975, df=sample_size-1)   # Get the t-critical value  by using 95% confidence level and degree of freedom
 print("t-critical value:")                  # Check the t-critical value
-#print(t_critical)     
+print(t_critical)     
 
 # t-critical value:
 # 2.0638985616280205
 ```
+
+    t-critical value:
+    2.0638985616280205
+
 
 Calculate the confidence interval of the sample by sigma and calculating the margin of error as:
 > **sigma = sample_std/√n**
@@ -92,24 +171,28 @@ and finally the confidence interval can be calculated as :
 
 ```python
 # Calculate the sample standard deviation
-sample_stdev = None    # Get the sample standard deviation
+sample_stdev = np.std(sample)    # Get the sample standard deviation
 
 # Calculate sigma using the formula described above to get population standard deviation estimate
-sigma =None
+sigma = sample_stdev/np.sqrt(sample_size)
 
 # Calculate margin of error using t_critical and sigma
-margin_of_error = None
+moe = t_critical*sigma
 
 # Calculate the confidence intervals using calculated margin of error 
-confidence_interval = None
+confidence_interval = (sample_mean - moe, sample_mean+moe)
 
 
-# print("Confidence interval:")
-#print(confidence_interval)
+print("Confidence interval:")
+print(confidence_interval)
 
 # Confidence interval:
 # (18.4609156900928, 21.280661568850913)
 ```
+
+    Confidence interval:
+    (18.4609156900928, 21.280661568850913)
+
 
 We can verify our calculations by using the Python function `stats.t.interval()`:
 
@@ -121,6 +204,13 @@ stats.t.interval(alpha = 0.95,              # Confidence level
                  scale = sigma)             # Standard deviation estimate
 # (18.4609156900928, 21.280661568850913)
 ```
+
+
+
+
+    (18.4609156900928, 21.280661568850913)
+
+
 
 We can see that the calculated confidence interval includes the population mean calculated above.
 
@@ -144,16 +234,16 @@ def conf_interval(sample):
     # Note that we use stats.t.ppf with q = 0.975 to get the desired t-critical value 
     # instead of q = 0.95 because the distribution has two tails.
 
-    t = None  #  t-critical value for 95% confidence
+    t = stats.t.ppf(q=0.975, df=24)  #  t-critical value for 95% confidence
     
-    sigma = None # Sample standard deviation
+    sigma = np.std(sample)/np.sqrt(sample_size) # Sample standard deviation
 
     # Calculate the margin of error using formula given above
-    moe = None
+    moe = t*sigma
 
     # Calculate the confidence interval by applying margin of error to sample mean 
     # (mean - margin of error, mean+ margin of error)
-    conf = None
+    conf = (x_hat-moe, x_hat+moe)
     
     return conf
 ```
@@ -162,7 +252,7 @@ def conf_interval(sample):
 
 
 ```python
-set random seed for reproducability
+# set random seed for reproducability
 np.random.seed(12)
 
 # Select the sample size 
@@ -177,13 +267,15 @@ sample_means = []
 for sample in range(25):
 
     # Take a random sample of chosen size 
-    
+    sample = np.random.choice(a=population_ages, size=sample_size)
     
     # Calculate sample mean and confidence_interval
-   
+    sample_mean = np.mean(sample)
+    conf = conf_interval(sample)
   
     # Calculate and append sample means and conf intervals for each iteration
-
+    intervals.append(conf)
+    sample_means.append(sample_mean)
 
 ```
 
@@ -192,10 +284,34 @@ for sample in range(25):
 
 ```python
 # Plot the confidence intervals with sample and population means
+plt.figure(figsize=(15,9))
+
 # Draw the mean and confidence interval for each sample
+plt.errorbar(x=np.arange(0.1, 25, 1),
+            y=sample_means,
+            yerr=[(top-bot)/2 for top,bot in intervals], 
+            fmt='o', color='black'
+            )
+
 # Draw the population mean 
-# Draw the mean and confidence interval for each sample
+plt.hlines(xmin=0, xmax=25,
+          y=population_ages.mean(),
+          linewidth=2.0, 
+          color='lightgreen')
+
+
 ```
+
+
+
+
+    <matplotlib.collections.LineCollection at 0x1a1e753978>
+
+
+
+
+![png](output_20_1.png)
+
 
 Just like the last lab, all but one of the 95% confidence intervals overlap the red line marking the true mean. This is to be expected: since a 95% confidence interval captures the true mean 95% of the time, we'd expect our interval to miss the true mean 5% of the time.
 
